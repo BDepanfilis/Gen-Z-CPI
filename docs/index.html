@@ -80,17 +80,31 @@ function toNum(x){ const v=Number(x); return Number.isFinite(v)?v:null; }
   const c = val.rows.map(r => toNum(r.index_chain));
   const b = val.rows.map(r => toNum(r.cpiu_index));
 
-  // LEVELS
-  Plotly.newPlot("chart_levels", [
-    {x: years, y: f,  mode:"lines+markers", name:"Gen-Z CPI (Fixed)",  line:{width:3}},
-    {x: years, y: c,  mode:"lines+markers", name:"Gen-Z CPI (Chained)",line:{width:3}},
-    {x: years, y: b,  mode:"lines+markers", name:"BLS CPI-U",          line:{width:3}}
-  ], {
-    title: "Index level (2020 = 1.00)",
-    xaxis: {title:"Year", dtick:1},
-    yaxis: {title:"Index", rangemode:"tozero"},
-    legend: {orientation:"h", x:0, y:1.2}
-  }, {displayModeBar:false});
+  // LEVELS (auto-cap y-axis: [1.00, min(1.30, data max + padding)])
+const allLevels = [...f, ...c, ...b].filter(v => v != null);
+const maxLevel  = Math.max(...allLevels);
+const upperRaw  = maxLevel + 0.005;                       // small headroom
+const upperCapped = Math.min(1.30, upperRaw);
+// round up to 2 decimals so ticks look clean
+const upper = Math.ceil(upperCapped * 100) / 100;
+
+Plotly.newPlot("chart_levels", [
+  { x: years, y: f, mode:"lines+markers", name:"Gen-Z CPI (Fixed)",   line:{width:3} },
+  { x: years, y: c, mode:"lines+markers", name:"Gen-Z CPI (Chained)", line:{width:3} },
+  { x: years, y: b, mode:"lines+markers", name:"BLS CPI-U",           line:{width:3} }
+], {
+  title: "Index level (2020 = 1.00)",
+  xaxis: { title:"Year", dtick:1 },
+  yaxis: {
+    title: "Index",
+    autorange: false,
+    range: [1.00, upper],
+    tick0: 1.00,
+    dtick: 0.05,
+    tickformat: ".2f"
+  },
+  legend: { orientation:"h", x:0, y:1.2 }
+}, { displayModeBar:false });
 
   // YOY
   function yoy(arr){ return arr.map((v,i)=> i===0? null : (v!=null && arr[i-1]!=null? v/arr[i-1]-1 : null)); }
@@ -125,3 +139,4 @@ function toNum(x){ const v=Number(x); return Number.isFinite(v)?v:null; }
 </script>
 </body>
 </html>
+
