@@ -11,6 +11,9 @@ Outputs are versioned as CSVs, visualized on GitHub Pages, and in Power BI.
 
 ## Quick links
 
+- **Interactive dashboard (Power BI)**: *(publish-to-web link)*  
+[ https://app.powerbi.com/view?r=eyJrIjoiYWIyZGVmMjUtYzc3My00OTAzLTgzODQtZWMyMzFjZjYyMDEzIiwidCI6ImE4MjE2YzFlLTRkNjMtNDM1Mi04YzNiLTUwZmExZjE0NzViMSIsImMiOjZ9
+](https://app.powerbi.com/view?r=eyJrIjoiMDU5OWFhNDAtYWI2OC00MDQ5LTk1ZDMtYzU5ZGYyNmI3ZmNmIiwidCI6ImE4MjE2YzFlLTRkNjMtNDM1Mi04YzNiLTUwZmExZjE0NzViMSIsImMiOjZ9)
 - **Live charts (GitHub Pages):** `docs/index.html` → served at `https://BDepanfilis.github.io/Gen-Z-CPI/`  
 - **Data & methods:** [`docs/methodology.md`](docs/methodology.md) (Data Sourcing and Methodology)  
 - **SQL:** [`sql/`](sql/) — source‑of‑truth queries  
