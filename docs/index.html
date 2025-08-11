@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Gen-Z CPI (vs. BLS CPI-U)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif;margin:20px;color:#111}
+    .wrap{max-width:980px;margin:0 auto}
+    h1{margin:0 0 6px}
+    .sub{color:#555;margin-bottom:22px}
+    .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin:18px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+    .grid{display:grid;gap:16px}
+    .grid2{grid-template-columns:1fr; }
+    @media(min-width:900px){ .grid2{grid-template-columns:1fr 1fr;} }
+    table{border-collapse:collapse;width:100%}
+    th,td{border-bottom:1px solid #eee;padding:8px 10px;text-align:right}
+    th:first-child, td:first-child{text-align:left}
+    .muted{color:#666;font-size:14px;margin-top:6px}
+    a{color:#2563eb;text-decoration:none}
+  </style>
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>Gen-Z CPI</h1>
+  <div class="sub">Fixed-weight & annually reweighted chained indices, normalized to 1.00 in 2020. Compared to BLS CPI-U.</div>
+
+  <div class="card">
+    <div id="chart_levels" style="height:420px;"></div>
+  </div>
+
+  <div class="card">
+    <div id="chart_yoy" style="height:420px;"></div>
+    <div class="muted">YoY = current year index / prior year − 1</div>
+  </div>
+
+  <div class="card">
+    <h3>Validation (vs. BLS)</h3>
+    <div class="grid grid2">
+      <div>
+        <table id="summary"><tbody></tbody></table>
+      </div>
+      <div>
+        <p class="muted">
+          Data sources: <code>docs/data/genz_cpi_fixed.csv</code>,
+          <code>docs/data/genz_cpi_chain.csv</code>,
+          <code>docs/data/validation_bls_compare.csv</code>.
+        </p>
+        <p class="muted">
+          Methods: Laspeyres (fixed 2020 weights) and annually reweighted, chained (t−1 weights with t relatives).
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <p class="muted">© Bradley DePanfilis · MIT License</p>
+</div>
+
+<script>
+async function loadCSV(path){
+  const txt = await (await fetch(path)).text();
+  const lines = txt.trim().split(/\r?\n/);
+  const headers = lines[0].split(",").map(h=>h.trim());
+  const rows = lines.slice(1).map(l => {
+    const cols = l.split(",").map(c=>c.trim());
+    const obj = {};
+    headers.forEach((h,i)=>obj[h]=cols[i]);
+    return obj;
+  });
+  return {headers, rows};
+}
+
+function toNum(x){ const v=Number(x); return Number.isFinite(v)?v:null; }
+
+(async function(){
+  const val = await loadCSV("data/validation_bls_compare.csv");
+  const years = val.rows.map(r => Number(r.year));
+  const f = val.rows.map(r => toNum(r.index_fixed));
+  const c = val.rows.map(r => toNum(r.index_chain));
+  const b = val.rows.map(r => toNum(r.cpiu_index));
+
+  // LEVELS
+  Plotly.newPlot("chart_levels", [
+    {x: years, y: f,  mode:"lines+markers", name:"Gen-Z CPI (Fixed)",  line:{width:3}},
+    {x: years, y: c,  mode:"lines+markers", name:"Gen-Z CPI (Chained)",line:{width:3}},
+    {x: years, y: b,  mode:"lines+markers", name:"BLS CPI-U",          line:{width:3}}
+  ], {
+    title: "Index level (2020 = 1.00)",
+    xaxis: {title:"Year", dtick:1},
+    yaxis: {title:"Index", rangemode:"tozero"},
+    legend: {orientation:"h", x:0, y:1.2}
+  }, {displayModeBar:false});
+
+  // YOY
+  function yoy(arr){ return arr.map((v,i)=> i===0? null : (v!=null && arr[i-1]!=null? v/arr[i-1]-1 : null)); }
+  const fy = yoy(f), cy = yoy(c), by = yoy(b);
+  Plotly.newPlot("chart_yoy", [
+    {x: years, y: fy, type:"bar", name:"Gen-Z (Fixed) YoY"},
+    {x: years, y: cy, type:"bar", name:"Gen-Z (Chained) YoY"},
+    {x: years, y: by, type:"bar", name:"BLS CPI-U YoY"}
+  ], {
+    title: "Year-over-year change",
+    xaxis:{title:"Year", dtick:1},
+    yaxis:{tickformat:".1%", rangemode:"tozero"},
+    barmode:"group",
+    legend:{orientation:"h", x:0, y:1.2}
+  }, {displayModeBar:false});
+
+  // tiny summary table (last year diffs)
+  const last = val.rows[val.rows.length-1];
+  const diffF = (toNum(last.index_fixed) - toNum(last.cpiu_index));
+  const diffC = (toNum(last.index_chain) - toNum(last.cpiu_index));
+  const fmt = (n, pct=false) => n==null? "—" : (pct? (n*100).toFixed(1)+"%" : n.toFixed(3));
+  const tbody = document.querySelector("#summary tbody");
+  tbody.innerHTML = `
+    <tr><th>Last Year</th><td>${last.year}</td></tr>
+    <tr><th>Gen-Z Fixed vs BLS (level)</th><td>${fmt(diffF,false)}</td></tr>
+    <tr><th>Gen-Z Chained vs BLS (level)</th><td>${fmt(diffC,false)}</td></tr>
+    <tr><th>Gen-Z Fixed YoY</th><td>${fmt(fy[fy.length-1],true)}</td></tr>
+    <tr><th>Gen-Z Chained YoY</th><td>${fmt(cy[cy.length-1],true)}</td></tr>
+    <tr><th>BLS CPI-U YoY</th><td>${fmt(by[by.length-1],true)}</td></tr>
+  `;
+})();
+</script>
+</body>
+</html>
